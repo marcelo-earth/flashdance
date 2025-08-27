@@ -36,6 +36,25 @@ def vanilla_attention(q, k, v, causal=True, dropout_p=0.0):
     return out
 
 
+def vanilla_attention_with_scores(q, k, v, causal=True):
+    """Same as vanilla_attention but also returns the attention weights.
+
+    Useful for visualization and debugging.
+    """
+    B, H, T, D = q.shape
+    scale = 1.0 / math.sqrt(D)
+
+    attn = torch.matmul(q, k.transpose(-2, -1)) * scale
+
+    if causal:
+        mask = torch.triu(torch.ones(T, T, device=q.device, dtype=torch.bool), diagonal=1)
+        attn = attn.masked_fill(mask, float("-inf"))
+
+    attn = F.softmax(attn, dim=-1)
+    out = torch.matmul(attn, v)
+    return out, attn
+
+
 def sdpa_attention(q, k, v, causal=True):
     """PyTorch's scaled_dot_product_attention (uses flash attention when available).
 
