@@ -6,12 +6,13 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 
-def vanilla_attention(q, k, v, causal=True):
+def vanilla_attention(q, k, v, causal=True, dropout_p=0.0):
     """Standard scaled dot-product attention. Materializes full NxN matrix.
 
     Args:
         q, k, v: (batch, heads, seq_len, head_dim)
         causal: apply causal mask
+        dropout_p: dropout probability on attention weights
 
     Returns:
         output: (batch, heads, seq_len, head_dim)
@@ -27,6 +28,10 @@ def vanilla_attention(q, k, v, causal=True):
         attn = attn.masked_fill(mask, float("-inf"))
 
     attn = F.softmax(attn, dim=-1)
+
+    if dropout_p > 0.0 and q.requires_grad:
+        attn = F.dropout(attn, p=dropout_p)
+
     out = torch.matmul(attn, v)
     return out
 
