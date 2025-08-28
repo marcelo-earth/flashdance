@@ -52,7 +52,7 @@ def plot_all_heads(attn_weights, max_heads=8, save_path=None):
     for i in range(n_heads, len(axes)):
         axes[i].set_visible(False)
 
-    plt.suptitle("Attention patterns per head", fontsize=13)
+    plt.suptitle("Attention patterns per head (causal mask visible)", fontsize=13)
     plt.tight_layout()
 
     if save_path:
