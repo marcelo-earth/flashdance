@@ -2,6 +2,8 @@
 
 import argparse
 import gc
+import json
+import os
 import time
 
 import torch
@@ -314,6 +316,19 @@ def print_results(results):
             print(r)
 
 
+def save_results(results, name="forward", output_dir="results"):
+    """Save benchmark results to JSON."""
+    os.makedirs(output_dir, exist_ok=True)
+    # replace inf with string for JSON serialization
+    clean = []
+    for r in results:
+        clean.append({k: ("OOM" if v == float("inf") else v) for k, v in r.items()})
+    path = os.path.join(output_dir, f"{name}.json")
+    with open(path, "w") as f:
+        json.dump(clean, f, indent=2)
+    print(f"Results saved to {path}")
+
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Benchmark attention implementations")
     parser.add_argument("--seq-len", type=int, nargs="+", default=[128, 256, 512, 1024, 2048, 4096])
@@ -323,6 +338,7 @@ if __name__ == "__main__":
     parser.add_argument("--device", type=str, default=None)
     parser.add_argument("--repeats", type=int, default=10)
     parser.add_argument("--backward", action="store_true", help="Also benchmark backward pass")
+    parser.add_argument("--save", action="store_true", help="Save results to JSON")
     args = parser.parse_args()
 
     results = benchmark_attention(
@@ -335,6 +351,9 @@ if __name__ == "__main__":
     )
     print_results(results)
 
+    if args.save:
+        save_results(results, "forward")
+
     if args.backward:
         backward_results = benchmark_backward(
             seq_lengths=args.seq_len,
@@ -344,3 +363,5 @@ if __name__ == "__main__":
             device=args.device,
             repeats=min(args.repeats, 5),
         )
+        if args.save:
+            save_results(backward_results, "backward")
