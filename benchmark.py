@@ -27,13 +27,17 @@ def measure_time(fn, *args, warmup=3, repeats=10, **kwargs):
         fn(*args, **kwargs)
         if torch.cuda.is_available():
             torch.cuda.synchronize()
+        elif hasattr(torch.mps, "synchronize"):
+            torch.mps.synchronize()
         times.append(time.perf_counter() - start)
 
+    mean = sum(times) / len(times)
     return {
-        "mean": sum(times) / len(times),
+        "mean": mean,
         "min": min(times),
         "max": max(times),
-        "std": (sum((t - sum(times)/len(times))**2 for t in times) / len(times)) ** 0.5,
+        "std": (sum((t - mean)**2 for t in times) / len(times)) ** 0.5,
+        "median": sorted(times)[len(times) // 2],
     }
 
 
