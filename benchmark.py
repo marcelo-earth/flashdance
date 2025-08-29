@@ -36,23 +36,32 @@ def measure_time(fn, *args, warmup=3, repeats=10, **kwargs):
 
 
 def measure_memory(fn, *args, **kwargs):
-    """Measure peak memory usage of a function (CUDA only)."""
-    if not torch.cuda.is_available():
-        return {"peak_mb": 0, "allocated_mb": 0}
+    """Measure peak memory usage of a function.
 
-    gc.collect()
-    torch.cuda.empty_cache()
-    torch.cuda.reset_peak_memory_stats()
+    Works on CUDA (accurate) and MPS/CPU (estimated from tensor sizes).
+    """
+    if torch.cuda.is_available():
+        gc.collect()
+        torch.cuda.empty_cache()
+        torch.cuda.reset_peak_memory_stats()
 
-    before = torch.cuda.memory_allocated()
-    fn(*args, **kwargs)
-    torch.cuda.synchronize()
-    peak = torch.cuda.max_memory_allocated()
+        before = torch.cuda.memory_allocated()
+        fn(*args, **kwargs)
+        torch.cuda.synchronize()
+        peak = torch.cuda.max_memory_allocated()
 
-    return {
-        "peak_mb": (peak - before) / 1024**2,
-        "allocated_mb": peak / 1024**2,
-    }
+        return {
+            "peak_mb": (peak - before) / 1024**2,
+            "allocated_mb": peak / 1024**2,
+        }
+
+    # for MPS/CPU, estimate based on tensor sizes in args
+    # not as accurate but gives a sense of scale
+    estimated = 0
+    for arg in args:
+        if isinstance(arg, torch.Tensor):
+            estimated += arg.nelement() * arg.element_size()
+    return {"peak_mb": estimated / 1024**2, "allocated_mb": 0}
 
 
 def benchmark_attention(
