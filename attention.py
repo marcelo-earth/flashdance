@@ -76,11 +76,12 @@ def sdpa_attention(q, k, v, causal=True):
 class MultiHeadAttention(nn.Module):
     """Multi-head attention with selectable backend."""
 
-    def __init__(self, dim, n_heads, backend="vanilla"):
+    def __init__(self, dim, n_heads, backend="vanilla", dropout=0.0):
         super().__init__()
         assert dim % n_heads == 0
         self.n_heads = n_heads
         self.head_dim = dim // n_heads
+        self.dropout = dropout
 
         self.qkv = nn.Linear(dim, 3 * dim, bias=False)
         self.out = nn.Linear(dim, dim, bias=False)
