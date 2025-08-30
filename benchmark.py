@@ -243,6 +243,56 @@ def benchmark_head_dims(
     return results
 
 
+def benchmark_batch_sizes(
+    batch_sizes=None,
+    seq_len=1024,
+    n_heads=8,
+    head_dim=64,
+    device=None,
+    repeats=10,
+):
+    """Benchmark different batch sizes at fixed sequence length."""
+    if batch_sizes is None:
+        batch_sizes = [1, 2, 4, 8, 16]
+
+    if device is None:
+        device = "cuda" if torch.cuda.is_available() else "mps" if torch.backends.mps.is_available() else "cpu"
+
+    print(f"\nBatch size sweep (seq_len={seq_len})")
+    print(f"Device: {device}")
+    print()
+
+    results = []
+    for bs in batch_sizes:
+        q = torch.randn(bs, n_heads, seq_len, head_dim, device=device)
+        k = torch.randn(bs, n_heads, seq_len, head_dim, device=device)
+        v = torch.randn(bs, n_heads, seq_len, head_dim, device=device)
+
+        try:
+            vanilla_time = measure_time(vanilla_attention, q, k, v, repeats=repeats)
+        except RuntimeError:
+            vanilla_time = {"mean": float("inf")}
+
+        sdpa_time = measure_time(sdpa_attention, q, k, v, repeats=repeats)
+        speedup = vanilla_time["mean"] / sdpa_time["mean"] if sdpa_time["mean"] > 0 else 0
+
+        v_str = f"{vanilla_time['mean']*1000:.2f}ms" if vanilla_time["mean"] != float("inf") else "OOM"
+        print(f"  batch={bs}: vanilla={v_str}, sdpa={sdpa_time['mean']*1000:.2f}ms, speedup={speedup:.2f}x")
+        results.append({
+            "batch_size": bs,
+            "vanilla_ms": vanilla_time["mean"] * 1000,
+            "sdpa_ms": sdpa_time["mean"] * 1000,
+            "speedup": speedup,
+        })
+
+        del q, k, v
+        gc.collect()
+        if torch.cuda.is_available():
+            torch.cuda.empty_cache()
+
+    return results
+
+
 def print_results(results):
     """Print results as a formatted table."""
     try:
