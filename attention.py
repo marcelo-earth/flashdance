@@ -108,6 +108,41 @@ class MultiHeadAttention(nn.Module):
         return self.out(out)
 
 
+def compare_dtypes(seq_len=512, batch_size=2, n_heads=4, head_dim=64, device=None):
+    """Compare attention output across float32, float16, bfloat16."""
+    if device is None:
+        device = "cuda" if torch.cuda.is_available() else "cpu"
+
+    dtypes = [torch.float32]
+    if device == "cuda":
+        dtypes += [torch.float16, torch.bfloat16]
+    elif device == "mps":
+        dtypes += [torch.float16]
+
+    q = torch.randn(batch_size, n_heads, seq_len, head_dim, device=device)
+    k = torch.randn(batch_size, n_heads, seq_len, head_dim, device=device)
+    v = torch.randn(batch_size, n_heads, seq_len, head_dim, device=device)
+
+    ref = vanilla_attention(q, k, v).float()
+    results = {}
+
+    for dtype in dtypes:
+        q_cast = q.to(dtype)
+        k_cast = k.to(dtype)
+        v_cast = v.to(dtype)
+
+        out_vanilla = vanilla_attention(q_cast, k_cast, v_cast).float()
+        out_sdpa = sdpa_attention(q_cast, k_cast, v_cast).float()
+
+        results[str(dtype)] = {
+            "vanilla_vs_ref": (out_vanilla - ref).abs().max().item(),
+            "sdpa_vs_ref": (out_sdpa - ref).abs().max().item(),
+            "vanilla_vs_sdpa": (out_vanilla - out_sdpa).abs().max().item(),
+        }
+
+    return results
+
+
 def check_backends():
     """Check which SDPA backends are available on this hardware.
 
