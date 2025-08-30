@@ -12,7 +12,10 @@ Flash Attention rewrites the attention computation to be IO-aware -- it avoids m
 - Backward pass speed (training matters too)
 - Peak memory usage
 - Head dimension sweep (32, 64, 128)
+- Batch size sweep (1 to 16)
+- Dtype precision (float32, float16, bfloat16)
 - Torch profiler breakdown
+- Attention pattern visualization
 
 ## Key findings
 
@@ -21,6 +24,7 @@ Flash Attention rewrites the attention computation to be IO-aware -- it avoids m
 - At 2K+ tokens, SDPA saves both time and memory significantly
 - The backward pass speedup is often bigger than the forward pass
 - On CUDA, Flash Attention kernel kicks in automatically through SDPA
+- float16 and bfloat16 give extra speedup with minimal precision loss
 
 ## Setup
 
@@ -28,14 +32,17 @@ Flash Attention rewrites the attention computation to be IO-aware -- it avoids m
 pip install -r requirements.txt
 python benchmark.py --seq-len 512 1024 2048 4096
 python benchmark.py --backward
+python benchmark.py --save
 python profile_attn.py --seq-len 1024
+python visualize.py
 ```
 
 ## Files
 
 | File | What it does |
 |------|-------------|
-| `attention.py` | Vanilla and SDPA attention implementations |
-| `benchmark.py` | Speed, memory, and head dim benchmarks |
+| `attention.py` | Vanilla and SDPA attention + dtype comparison |
+| `benchmark.py` | Speed, memory, head dim, and batch size benchmarks |
 | `profile_attn.py` | Torch profiler for attention ops |
+| `visualize.py` | Attention pattern heatmaps |
 | `flashdance.ipynb` | Full analysis with plots |
