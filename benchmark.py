@@ -200,6 +200,49 @@ def benchmark_backward(
     return results
 
 
+def benchmark_head_dims(
+    head_dims=None,
+    seq_len=1024,
+    batch_size=4,
+    n_heads=8,
+    device=None,
+    repeats=10,
+):
+    """Benchmark different head dimensions at fixed sequence length."""
+    if head_dims is None:
+        head_dims = [32, 64, 128]
+
+    if device is None:
+        device = "cuda" if torch.cuda.is_available() else "mps" if torch.backends.mps.is_available() else "cpu"
+
+    print(f"\nHead dimension sweep (seq_len={seq_len})")
+    print(f"Device: {device}")
+    print()
+
+    results = []
+    for hd in head_dims:
+        q = torch.randn(batch_size, n_heads, seq_len, hd, device=device)
+        k = torch.randn(batch_size, n_heads, seq_len, hd, device=device)
+        v = torch.randn(batch_size, n_heads, seq_len, hd, device=device)
+
+        vanilla_time = measure_time(vanilla_attention, q, k, v, repeats=repeats)
+        sdpa_time = measure_time(sdpa_attention, q, k, v, repeats=repeats)
+        speedup = vanilla_time["mean"] / sdpa_time["mean"]
+
+        print(f"  head_dim={hd}: vanilla={vanilla_time['mean']*1000:.2f}ms, sdpa={sdpa_time['mean']*1000:.2f}ms, speedup={speedup:.2f}x")
+        results.append({
+            "head_dim": hd,
+            "vanilla_ms": vanilla_time["mean"] * 1000,
+            "sdpa_ms": sdpa_time["mean"] * 1000,
+            "speedup": speedup,
+        })
+
+        del q, k, v
+        gc.collect()
+
+    return results
+
+
 def print_results(results):
     """Print results as a formatted table."""
     try:
