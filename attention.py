@@ -84,7 +84,10 @@ class MultiHeadAttention(nn.Module):
 
 
 def check_backends():
-    """Check which SDPA backends are available."""
+    """Check which SDPA backends are available on this hardware.
+
+    Returns a dict with keys: flash, mem_efficient, math
+    """
     backends = {}
 
     # check flash attention
