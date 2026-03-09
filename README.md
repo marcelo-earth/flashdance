@@ -1,6 +1,17 @@
-# FlashDance
+<p align="center">
+  <img
+    src=".github/logo.png"
+    align="center"
+    width="100"
+    alt="FlashDance"
+    title="FlashDance"
+  />
+  <h1 align="center">FlashDance</h1>
+</p>
 
-Benchmark Flash Attention vs vanilla attention. How much faster is it really? When does it matter?
+<p align="center">
+  Benchmark Flash Attention vs vanilla attention. How much faster is it really? When does it matter?
+</p>
 
 ## What is this?
 
