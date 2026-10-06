@@ -26,7 +26,7 @@ import time
 import numpy as np
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-FIELDS = ["block", "position", "seq_len", "method", "median_ms", "device", "torch"]
+FIELDS = ["block", "position", "seq_len", "method", "median_ms", "device", "torch", "load1"]
 
 
 def run_block(order, batch_size, n_heads, head_dim, warmup, inner):
@@ -69,6 +69,15 @@ def run_block(order, batch_size, n_heads, head_dim, warmup, inner):
     return rows
 
 
+def wait_for_idle(max_load, max_wait):
+    """Wait until the 1-minute load average drops below max_load. Background load
+    was the main noise source on 2026-10-05 (load 5-7 on an 8-core M3)."""
+    start = time.time()
+    while max_load and os.getloadavg()[0] > max_load and time.time() - start < max_wait:
+        time.sleep(5)
+    return os.getloadavg()[0]
+
+
 def run(args):
     rng = np.random.default_rng(args.seed)
     conditions = [(s, m) for s in args.seq_len for m in ("vanilla", "sdpa")]
@@ -80,6 +89,7 @@ def run(args):
         "batch_size": args.batch_size, "n_heads": args.n_heads, "head_dim": args.head_dim,
         "warmup": args.warmup, "inner": args.inner, "machine": platform.platform(),
         "processor": platform.processor(), "python": platform.python_version(),
+        "max_load": args.max_load,
     }
     with open(path.replace(".csv", ".meta.json"), "w") as f:
         json.dump(meta, f, indent=2)
@@ -88,6 +98,7 @@ def run(args):
         writer = csv.DictWriter(f, fieldnames=FIELDS)
         writer.writeheader()
         for block in range(args.blocks):
+            load1 = wait_for_idle(args.max_load, args.max_wait)
             order = [conditions[i] for i in rng.permutation(len(conditions))]
             payload = json.dumps({
                 "order": order, "batch_size": args.batch_size, "n_heads": args.n_heads,
@@ -96,9 +107,9 @@ def run(args):
             out = subprocess.run([sys.executable, __file__, "--worker", payload],
                                  cwd=HERE, capture_output=True, text=True, check=True)
             for row in json.loads(out.stdout.strip().splitlines()[-1]):
-                writer.writerow({"block": block, **row})
+                writer.writerow({"block": block, **row, "load1": round(load1, 2)})
             f.flush()
-            print(f"block {block + 1}/{args.blocks} done")
+            print(f"block {block + 1}/{args.blocks} done (load {load1:.2f})")
     print(f"saved {path}")
     analyze(path)
 
@@ -144,6 +155,8 @@ def main():
     parser.add_argument("--warmup", type=int, default=3)
     parser.add_argument("--inner", type=int, default=10)
     parser.add_argument("--seed", type=int, default=20261005)
+    parser.add_argument("--max-load", type=float, default=0, help="wait for 1-min load below this before each block (0 = off)")
+    parser.add_argument("--max-wait", type=float, default=600, help="seconds to wait for idle before running anyway")
     parser.add_argument("--analyze", help="analyze an existing CSV instead of running")
     parser.add_argument("--worker", help=argparse.SUPPRESS)
     args = parser.parse_args()
