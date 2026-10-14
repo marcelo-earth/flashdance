@@ -10,6 +10,7 @@ repeats are not independent and the order can favor one method. Here:
 
 Usage:
     python stats_bench.py --blocks 6 --seq-len 512 1024 2048
+    python stats_bench.py --blocks 15 --dtype bfloat16 --sdpa-backend flash   # CUDA
     python stats_bench.py --analyze results/stats_bench_<stamp>.csv
 """
 
@@ -26,16 +27,31 @@ import time
 import numpy as np
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-FIELDS = ["block", "position", "seq_len", "method", "median_ms", "device", "torch", "load1"]
+FIELDS = ["block", "position", "seq_len", "method", "median_ms", "device", "torch", "load1",
+          "dtype", "backend", "peak_mb"]
 
 
-def run_block(order, batch_size, n_heads, head_dim, warmup, inner):
-    """Time each (seq_len, method) in `order` once. Runs inside a fresh process."""
+def run_block(order, batch_size, n_heads, head_dim, warmup, inner, dtype="float32", sdpa_backend="default"):
+    """Time each (seq_len, method) in `order` once. Runs inside a fresh process.
+
+    dtype: tensor dtype. The CUDA flash backend rejects float32, so a float32 CUDA run
+    would silently time the memory-efficient backend instead of Flash.
+    sdpa_backend: "default" lets PyTorch choose; "flash", "efficient" or "math" force one
+    on CUDA, and an unsupported config raises instead of falling back.
+    """
     import torch
     from attention import vanilla_attention, sdpa_attention
 
     device = "cuda" if torch.cuda.is_available() else "mps" if torch.backends.mps.is_available() else "cpu"
     fns = {"vanilla": vanilla_attention, "sdpa": sdpa_attention}
+    torch_dtype = getattr(torch, dtype)
+    forced = None
+    if sdpa_backend != "default":
+        if device != "cuda":
+            raise RuntimeError(f"sdpa_backend={sdpa_backend} needs CUDA, got {device}")
+        from torch.nn.attention import SDPBackend
+        forced = {"flash": SDPBackend.FLASH_ATTENTION, "efficient": SDPBackend.EFFICIENT_ATTENTION,
+                  "math": SDPBackend.MATH}[sdpa_backend]
 
     def sync():
         if device == "cuda":
@@ -46,8 +62,16 @@ def run_block(order, batch_size, n_heads, head_dim, warmup, inner):
     rows = []
     for position, (seq_len, method) in enumerate(order):
         gen = torch.Generator().manual_seed(seq_len)
-        q, k, v = (torch.randn(batch_size, n_heads, seq_len, head_dim, generator=gen).to(device) for _ in range(3))
+        q, k, v = (torch.randn(batch_size, n_heads, seq_len, head_dim, generator=gen).to(device=device, dtype=torch_dtype)
+                   for _ in range(3))
         fn = fns[method]
+        if forced is not None and method == "sdpa":
+            from torch.nn.attention import sdpa_kernel
+            inner_fn = fn
+            fn = lambda q, k, v: _forced_call(inner_fn, sdpa_kernel, forced, q, k, v)  # noqa: E731
+        if device == "cuda":
+            torch.cuda.synchronize()
+            torch.cuda.reset_peak_memory_stats()
         for _ in range(warmup):
             fn(q, k, v)
         sync()
@@ -57,6 +81,7 @@ def run_block(order, batch_size, n_heads, head_dim, warmup, inner):
             fn(q, k, v)
             sync()
             times.append(time.perf_counter() - start)
+        peak_mb = torch.cuda.max_memory_allocated() / 2**20 if device == "cuda" else ""
         rows.append({
             "position": position,
             "seq_len": seq_len,
@@ -64,9 +89,17 @@ def run_block(order, batch_size, n_heads, head_dim, warmup, inner):
             "median_ms": float(np.median(times)) * 1000,
             "device": device,
             "torch": torch.__version__,
+            "dtype": dtype,
+            "backend": (sdpa_backend if method == "sdpa" else "matmul-softmax"),
+            "peak_mb": round(peak_mb, 1) if peak_mb != "" else "",
         })
         del q, k, v
     return rows
+
+
+def _forced_call(fn, sdpa_kernel, backend, q, k, v):
+    with sdpa_kernel(backend):
+        return fn(q, k, v)
 
 
 def wait_for_idle(max_load, max_wait):
@@ -89,7 +122,7 @@ def run(args):
         "batch_size": args.batch_size, "n_heads": args.n_heads, "head_dim": args.head_dim,
         "warmup": args.warmup, "inner": args.inner, "machine": platform.platform(),
         "processor": platform.processor(), "python": platform.python_version(),
-        "max_load": args.max_load,
+        "max_load": args.max_load, "dtype": args.dtype, "sdpa_backend": args.sdpa_backend,
     }
     with open(path.replace(".csv", ".meta.json"), "w") as f:
         json.dump(meta, f, indent=2)
@@ -103,6 +136,7 @@ def run(args):
             payload = json.dumps({
                 "order": order, "batch_size": args.batch_size, "n_heads": args.n_heads,
                 "head_dim": args.head_dim, "warmup": args.warmup, "inner": args.inner,
+                "dtype": args.dtype, "sdpa_backend": args.sdpa_backend,
             })
             out = subprocess.run([sys.executable, __file__, "--worker", payload],
                                  cwd=HERE, capture_output=True, text=True, check=True)
@@ -138,6 +172,10 @@ def analyze(path):
         gap = d[first].mean() - d[~first].mean() if first.any() and (~first).any() else float("nan")
         print(f"{seq_len:>7} {n:>3} {np.median(van):>10.3f} {np.median(sdp):>8.3f} {math.exp(mean):>7.2f}x "
               f"[{math.exp(mean - half):.2f}, {math.exp(mean + half):.2f}] {sd:>7.3f} {gap:>9.3f}")
+        mem = [(float(b["vanilla"].get("peak_mb") or "nan"), float(b["sdpa"].get("peak_mb") or "nan")) for b in pairs]
+        if mem and not np.isnan(mem[0][0]):
+            print(f"        peak memory MB (median): vanilla {np.median([m[0] for m in mem]):.0f}, "
+                  f"sdpa {np.median([m[1] for m in mem]):.0f}")
         summary.append({"seq_len": seq_len, "n": n, "speedup": math.exp(mean),
                         "ci_low": math.exp(mean - half), "ci_high": math.exp(mean + half), "sd_log": sd})
     print("\nsd_log: SD of log(vanilla/sdpa) across blocks; the input for statistical-power.")
@@ -154,6 +192,10 @@ def main():
     parser.add_argument("--head-dim", type=int, default=64)
     parser.add_argument("--warmup", type=int, default=3)
     parser.add_argument("--inner", type=int, default=10)
+    parser.add_argument("--dtype", default="float32", choices=["float32", "float16", "bfloat16"],
+                        help="tensor dtype; CUDA flash needs float16 or bfloat16")
+    parser.add_argument("--sdpa-backend", default="default", choices=["default", "flash", "efficient", "math"],
+                        help="force an SDPA backend on CUDA (raises if unsupported); default lets PyTorch pick")
     parser.add_argument("--seed", type=int, default=20261005)
     parser.add_argument("--max-load", type=float, default=0, help="wait for 1-min load below this before each block (0 = off)")
     parser.add_argument("--max-wait", type=float, default=600, help="seconds to wait for idle before running anyway")
@@ -164,7 +206,8 @@ def main():
     if args.worker:
         p = json.loads(args.worker)
         rows = run_block([tuple(c) for c in p["order"]], p["batch_size"], p["n_heads"],
-                         p["head_dim"], p["warmup"], p["inner"])
+                         p["head_dim"], p["warmup"], p["inner"],
+                         p.get("dtype", "float32"), p.get("sdpa_backend", "default"))
         print(json.dumps(rows))
     elif args.analyze:
         analyze(args.analyze)
