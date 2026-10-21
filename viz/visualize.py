@@ -4,7 +4,7 @@ import torch
 import matplotlib.pyplot as plt
 import numpy as np
 
-from attention import vanilla_attention_with_scores
+from flashdance.attention import vanilla_attention_with_scores
 
 
 def plot_attention_map(attn_weights, head_idx=0, layer_label="", save_path=None):

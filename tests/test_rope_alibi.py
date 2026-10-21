@@ -5,10 +5,10 @@ import pytest
 import torch
 import torch.nn.functional as F
 
-from rope import precompute_freqs, apply_rope, apply_rope_single, RoPECache, rope_attention
-from alibi import get_alibi_slopes, build_alibi_bias, alibi_attention, ALiBiAttention
-from sliding_window import sliding_window_mask, sliding_window_attention, SlidingWindowAttention
-from cross_attention import cross_attention, cross_attention_with_mask, CrossAttention
+from flashdance.rope import precompute_freqs, apply_rope, apply_rope_single, RoPECache, rope_attention
+from flashdance.alibi import get_alibi_slopes, build_alibi_bias, alibi_attention, ALiBiAttention
+from flashdance.sliding_window import sliding_window_mask, sliding_window_attention, SlidingWindowAttention
+from flashdance.cross_attention import cross_attention, cross_attention_with_mask, CrossAttention
 
 
 DEVICE = "mps" if torch.backends.mps.is_available() else "cpu"

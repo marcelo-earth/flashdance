@@ -17,7 +17,7 @@ import gc
 import torch
 import torch.nn.functional as F
 
-from attention import vanilla_attention, sdpa_attention
+from flashdance.attention import vanilla_attention, sdpa_attention
 
 
 def _sync(device):

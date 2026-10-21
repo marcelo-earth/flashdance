@@ -5,12 +5,12 @@ import pytest
 import torch
 import torch.nn.functional as F
 
-from attention import vanilla_attention, sdpa_attention, vanilla_attention_with_scores, MultiHeadAttention
-from rope import precompute_freqs, apply_rope, rotate_half, RoPECache
-from gqa import grouped_query_attention, multi_query_attention, repeat_kv, GroupedQueryAttention
-from sliding_window import sliding_window_mask, sliding_window_attention, SlidingWindowAttention
-from alibi import get_alibi_slopes, build_alibi_bias, alibi_attention, ALiBiAttention
-from mla import MultiHeadLatentAttention
+from flashdance.attention import vanilla_attention, sdpa_attention, vanilla_attention_with_scores, MultiHeadAttention
+from flashdance.rope import precompute_freqs, apply_rope, rotate_half, RoPECache
+from flashdance.gqa import grouped_query_attention, multi_query_attention, repeat_kv, GroupedQueryAttention
+from flashdance.sliding_window import sliding_window_mask, sliding_window_attention, SlidingWindowAttention
+from flashdance.alibi import get_alibi_slopes, build_alibi_bias, alibi_attention, ALiBiAttention
+from flashdance.mla import MultiHeadLatentAttention
 
 
 DEVICE = "mps" if torch.backends.mps.is_available() else "cpu"

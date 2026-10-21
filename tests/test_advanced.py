@@ -4,10 +4,10 @@ import math
 import pytest
 import torch
 
-from entropy import attention_entropy, max_entropy, detect_attention_sinks
-from attention_io import vanilla_attention_io_analysis, flash_attention_io_analysis
-from memory_analysis import estimate_parameter_memory, activation_memory_table
-from attention_score_analysis import score_statistics, temperature_sweep
+from flashdance.entropy import attention_entropy, max_entropy, detect_attention_sinks
+from flashdance.attention_io import vanilla_attention_io_analysis, flash_attention_io_analysis
+from flashdance.memory_analysis import estimate_parameter_memory, activation_memory_table
+from flashdance.attention_score_analysis import score_statistics, temperature_sweep
 
 
 DEVICE = "mps" if torch.backends.mps.is_available() else "cpu"

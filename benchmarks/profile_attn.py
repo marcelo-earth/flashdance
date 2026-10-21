@@ -3,7 +3,7 @@
 import torch
 from torch.profiler import profile, ProfilerActivity
 
-from attention import vanilla_attention, sdpa_attention
+from flashdance.attention import vanilla_attention, sdpa_attention
 
 
 def profile_attention(seq_len=1024, batch_size=4, n_heads=8, head_dim=64, device=None):

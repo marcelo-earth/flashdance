@@ -208,7 +208,7 @@ def list_saved_benchmarks() -> list:
 
 if __name__ == "__main__":
     # demo: run a quick benchmark and save it
-    from benchmark import benchmark_attention
+    from benchmarks.benchmark import benchmark_attention
 
     print("Running benchmark...")
     results = benchmark_attention(seq_lengths=[256, 512, 1024], repeats=5)

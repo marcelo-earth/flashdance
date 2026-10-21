@@ -18,11 +18,11 @@ import time
 import torch
 import torch.nn.functional as F
 
-from attention import vanilla_attention, sdpa_attention
-from gqa import grouped_query_attention, repeat_kv
-from sliding_window import sliding_window_attention
-from alibi import build_alibi_bias, alibi_attention
-from rope import precompute_freqs, apply_rope
+from flashdance.attention import vanilla_attention, sdpa_attention
+from flashdance.gqa import grouped_query_attention, repeat_kv
+from flashdance.sliding_window import sliding_window_attention
+from flashdance.alibi import build_alibi_bias, alibi_attention
+from flashdance.rope import precompute_freqs, apply_rope
 
 
 def _sync(device):

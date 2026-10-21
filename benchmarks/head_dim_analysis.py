@@ -90,7 +90,7 @@ def benchmark_head_dims_detailed(
             sdpa_ms = times[len(times) // 2] * 1000
 
             # Vanilla
-            from attention import vanilla_attention
+            from flashdance.attention import vanilla_attention
             for _ in range(3):
                 vanilla_attention(q, k, v)
             _sync()

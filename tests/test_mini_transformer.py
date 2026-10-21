@@ -4,7 +4,7 @@ import pytest
 import torch
 import torch.nn as nn
 
-from mini_transformer import (
+from flashdance.mini_transformer import (
     MiniTransformerConfig,
     RMSNorm,
     SwiGLU,
@@ -77,7 +77,7 @@ class TestTransformerBlock:
         block = TransformerBlock(cfg).to(DEVICE)
         B, T = 2, 16
         x = torch.randn(B, T, cfg.dim, device=DEVICE)
-        from rope import precompute_freqs
+        from flashdance.rope import precompute_freqs
         cos, sin = precompute_freqs(cfg.head_dim, T, device=DEVICE)
         out = block(x, cos, sin)
         assert out.shape == (B, T, cfg.dim)
@@ -87,7 +87,7 @@ class TestTransformerBlock:
         cfg = MiniTransformerConfig(dim=64, n_heads=2, n_kv_heads=1)
         block = TransformerBlock(cfg)
         x = torch.randn(1, 8, cfg.dim)
-        from rope import precompute_freqs
+        from flashdance.rope import precompute_freqs
         cos, sin = precompute_freqs(cfg.head_dim, 8)
         out = block(x, cos, sin)
         assert not torch.allclose(x, out)
@@ -96,7 +96,7 @@ class TestTransformerBlock:
         cfg = MiniTransformerConfig(dim=64, n_heads=2, n_kv_heads=1)
         block = TransformerBlock(cfg)
         x = torch.randn(1, 8, cfg.dim, requires_grad=True)
-        from rope import precompute_freqs
+        from flashdance.rope import precompute_freqs
         cos, sin = precompute_freqs(cfg.head_dim, 8)
         out = block(x, cos, sin)
         out.sum().backward()

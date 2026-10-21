@@ -5,10 +5,10 @@ import pytest
 import torch
 import torch.nn.functional as F
 
-from long_context import ntk_scaled_rope, pi_scaled_rope
-from rope import precompute_freqs, apply_rope
-from speculative import simulate_draft_decode
-from cross_attention import TransformerDecoderLayer
+from flashdance.long_context import ntk_scaled_rope, pi_scaled_rope
+from flashdance.rope import precompute_freqs, apply_rope
+from flashdance.speculative import simulate_draft_decode
+from flashdance.cross_attention import TransformerDecoderLayer
 
 
 DEVICE = "mps" if torch.backends.mps.is_available() else "cpu"

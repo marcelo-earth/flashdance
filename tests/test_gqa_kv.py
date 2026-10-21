@@ -3,9 +3,9 @@
 import pytest
 import torch
 
-from kv_cache import KVCache, AttentionWithKVCache
-from mla import MultiHeadLatentAttention, compare_kv_cache_sizes
-from rope import precompute_freqs
+from flashdance.kv_cache import KVCache, AttentionWithKVCache
+from flashdance.mla import MultiHeadLatentAttention, compare_kv_cache_sizes
+from flashdance.rope import precompute_freqs
 
 
 DEVICE = "mps" if torch.backends.mps.is_available() else "cpu"

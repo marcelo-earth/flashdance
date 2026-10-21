@@ -16,8 +16,8 @@ import math
 import torch
 import torch.nn.functional as F
 
-from rope import precompute_freqs
-from kv_cache import KVCache, AttentionWithKVCache
+from flashdance.rope import precompute_freqs
+from flashdance.kv_cache import KVCache, AttentionWithKVCache
 
 
 def measure_prefill(

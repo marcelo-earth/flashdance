@@ -14,8 +14,8 @@ import torch
 import torch.nn.functional as F
 import numpy as np
 
-from attention import vanilla_attention_with_scores
-from entropy import attention_entropy
+from flashdance.attention import vanilla_attention_with_scores
+from flashdance.entropy import attention_entropy
 
 
 def classify_head(weights: torch.Tensor, pos_window: int = 3) -> str:

@@ -15,12 +15,12 @@ import matplotlib.pyplot as plt
 import numpy as np
 import os
 
-from attention import vanilla_attention_with_scores
-from gqa import repeat_kv
-from rope import precompute_freqs, apply_rope
-from alibi import build_alibi_bias, get_alibi_slopes
-from sliding_window import sliding_window_mask
-from entropy import attention_entropy
+from flashdance.attention import vanilla_attention_with_scores
+from flashdance.gqa import repeat_kv
+from flashdance.rope import precompute_freqs, apply_rope
+from flashdance.alibi import build_alibi_bias, get_alibi_slopes
+from flashdance.sliding_window import sliding_window_mask
+from flashdance.entropy import attention_entropy
 
 
 def plot_gqa_pattern(n_heads=8, n_kv_heads=2, seq_len=32, head_dim=32, save_path="plots/gqa_pattern.png"):

@@ -8,8 +8,8 @@ import time
 import torch
 import torch.nn.functional as F
 
-from gqa import grouped_query_attention, repeat_kv
-from attention import sdpa_attention
+from flashdance.gqa import grouped_query_attention, repeat_kv
+from flashdance.attention import sdpa_attention
 
 
 def _sync(device):

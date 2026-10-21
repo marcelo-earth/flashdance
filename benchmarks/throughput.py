@@ -18,7 +18,7 @@ import time
 import torch
 import torch.nn.functional as F
 
-from attention import vanilla_attention, sdpa_attention
+from flashdance.attention import vanilla_attention, sdpa_attention
 
 
 def attention_flops(batch: int, n_heads: int, seq_len: int, head_dim: int) -> int:

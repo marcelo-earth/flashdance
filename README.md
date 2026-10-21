@@ -41,19 +41,19 @@ Flash Attention rewrites the attention computation to be IO-aware -- it avoids m
 
 ```bash
 pip install -r requirements.txt
-python benchmark.py --seq-len 512 1024 2048 4096
-python benchmark.py --backward
-python benchmark.py --save
-python profile_attn.py --seq-len 1024
-python visualize.py
+python -m benchmarks.benchmark --seq-len 512 1024 2048 4096
+python -m benchmarks.benchmark --backward
+python -m benchmarks.benchmark --save
+python -m benchmarks.profile_attn --seq-len 1024
+python -m viz.visualize
 ```
 
-## Files
+## Layout
 
-| File | What it does |
-|------|-------------|
-| `attention.py` | Vanilla and SDPA attention + dtype comparison |
-| `benchmark.py` | Speed, memory, head dim, and batch size benchmarks |
-| `profile_attn.py` | Torch profiler for attention ops |
-| `visualize.py` | Attention pattern heatmaps |
+| Path | What it holds |
+|------|---------------|
+| `flashdance/` | Library: attention variants (`attention`, `gqa`, `mla`, `sliding_window`, `alibi`, `cross_attention`), `rope`, `kv_cache`, `mini_transformer`, `long_context`, `speculative`, and analysis helpers (`entropy`, `attention_io`, `attention_score_analysis`, `memory_analysis`) |
+| `benchmarks/` | Runnable benchmarks: `benchmark`, `stats_bench`, `throughput`, `compare`, `run_all`, `profile_attn`, and the rest. Run with `python -m benchmarks.<name>` from the repo root |
+| `viz/` | Plotting: `visualize`, `visualize_advanced`. Run with `python -m viz.<name>` |
+| `tests/` | pytest suite |
 | `flashdance.ipynb` | Full analysis with plots |

@@ -9,9 +9,9 @@ repeats are not independent and the order can favor one method. Here:
 - the speedup per seq_len is exp(mean log-ratio) over blocks, with a paired t CI
 
 Usage:
-    python stats_bench.py --blocks 6 --seq-len 512 1024 2048
-    python stats_bench.py --blocks 15 --dtype bfloat16 --sdpa-backend flash   # CUDA
-    python stats_bench.py --analyze results/stats_bench_<stamp>.csv
+    python -m benchmarks.stats_bench --blocks 6 --seq-len 512 1024 2048
+    python -m benchmarks.stats_bench --blocks 15 --dtype bfloat16 --sdpa-backend flash   # CUDA
+    python -m benchmarks.stats_bench --analyze results/stats_bench_<stamp>.csv
 """
 
 import argparse
@@ -26,7 +26,7 @@ import time
 
 import numpy as np
 
-HERE = os.path.dirname(os.path.abspath(__file__))
+HERE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 FIELDS = ["block", "position", "seq_len", "method", "median_ms", "device", "torch", "load1",
           "dtype", "backend", "peak_mb"]
 
@@ -40,7 +40,7 @@ def run_block(order, batch_size, n_heads, head_dim, warmup, inner, dtype="float3
     on CUDA, and an unsupported config raises instead of falling back.
     """
     import torch
-    from attention import vanilla_attention, sdpa_attention
+    from flashdance.attention import vanilla_attention, sdpa_attention
 
     device = "cuda" if torch.cuda.is_available() else "mps" if torch.backends.mps.is_available() else "cpu"
     fns = {"vanilla": vanilla_attention, "sdpa": sdpa_attention}
@@ -138,7 +138,7 @@ def run(args):
                 "head_dim": args.head_dim, "warmup": args.warmup, "inner": args.inner,
                 "dtype": args.dtype, "sdpa_backend": args.sdpa_backend,
             })
-            out = subprocess.run([sys.executable, __file__, "--worker", payload],
+            out = subprocess.run([sys.executable, "-m", "benchmarks.stats_bench", "--worker", payload],
                                  cwd=HERE, capture_output=True, text=True, check=True)
             for row in json.loads(out.stdout.strip().splitlines()[-1]):
                 writer.writerow({"block": block, **row, "load1": round(load1, 2)})

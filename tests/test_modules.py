@@ -4,7 +4,7 @@ import pytest
 import torch
 import torch.nn as nn
 
-from __init__ import (
+from flashdance import (
     vanilla_attention, sdpa_attention, MultiHeadAttention,
     precompute_freqs, apply_rope, RoPECache,
     GroupedQueryAttention, repeat_kv,

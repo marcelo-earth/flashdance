@@ -9,7 +9,7 @@ import time
 import torch
 import torch.nn.functional as F
 
-from attention import vanilla_attention, sdpa_attention
+from flashdance.attention import vanilla_attention, sdpa_attention
 
 
 def measure_time(fn, *args, warmup=3, repeats=10, **kwargs):

@@ -13,8 +13,8 @@ import gc
 import time
 import torch
 
-from kv_cache import KVCache, AttentionWithKVCache
-from rope import precompute_freqs
+from flashdance.kv_cache import KVCache, AttentionWithKVCache
+from flashdance.rope import precompute_freqs
 
 
 def sweep_kv_heads_inference(

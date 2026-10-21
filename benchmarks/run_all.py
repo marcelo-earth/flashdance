@@ -1,10 +1,10 @@
 """Run all benchmarks and generate a full HTML/markdown report.
 
 Usage:
-    python run_all.py                    # quick mode
-    python run_all.py --full             # full benchmark suite
-    python run_all.py --plots            # save all plots
-    python run_all.py --full --plots     # everything
+    python -m benchmarks.run_all                    # quick mode
+    python -m benchmarks.run_all --full             # full benchmark suite
+    python -m benchmarks.run_all --plots            # save all plots
+    python -m benchmarks.run_all --full --plots     # everything
 """
 
 import argparse
@@ -64,7 +64,7 @@ def run_suite(quick=True, save_plots=False):
 
     # ── 1. Main attention benchmark ──────────────────────────────────────────
     section("1. Forward Pass: Vanilla vs SDPA")
-    from benchmark import benchmark_attention
+    from benchmarks.benchmark import benchmark_attention
     fwd_results = benchmark_attention(
         seq_lengths=seq_lens, batch_size=batch, repeats=repeats
     )
@@ -72,7 +72,7 @@ def run_suite(quick=True, save_plots=False):
 
     # ── 2. GQA benchmark ─────────────────────────────────────────────────────
     section("2. GQA / MHA / MQA Comparison")
-    from benchmark_gqa import benchmark_gqa_configs
+    from benchmarks.benchmark_gqa import benchmark_gqa_configs
     gqa_results = benchmark_gqa_configs(
         seq_lengths=seq_lens, batch_size=batch, repeats=repeats
     )
@@ -80,7 +80,7 @@ def run_suite(quick=True, save_plots=False):
 
     # ── 3. Sliding window ────────────────────────────────────────────────────
     section("3. Sliding Window Attention")
-    from sliding_window import benchmark_sliding_window
+    from flashdance.sliding_window import benchmark_sliding_window
     swa_results = benchmark_sliding_window(
         seq_lengths=seq_lens, batch_size=batch, repeats=repeats
     )
@@ -88,7 +88,7 @@ def run_suite(quick=True, save_plots=False):
 
     # ── 4. KV cache speedup ──────────────────────────────────────────────────
     section("4. KV Cache: Inference Speedup")
-    from kv_cache import benchmark_kv_cache
+    from flashdance.kv_cache import benchmark_kv_cache
     kv_result = benchmark_kv_cache(
         prefill_len=min(seq_lens), n_gen_tokens=64, dim=512, n_heads=8, n_kv_heads=2
     )
@@ -96,13 +96,13 @@ def run_suite(quick=True, save_plots=False):
 
     # ── 5. IO analysis ───────────────────────────────────────────────────────
     section("5. Flash Attention IO Analysis")
-    from attention_io import io_comparison_table
+    from flashdance.attention_io import io_comparison_table
     io_results = io_comparison_table(seq_lengths=seq_lens)
     report["results"]["io_analysis"] = io_results
 
     # ── 6. Throughput ────────────────────────────────────────────────────────
     section("6. Throughput (tokens/sec)")
-    from throughput import benchmark_throughput
+    from benchmarks.throughput import benchmark_throughput
     tput_results = benchmark_throughput(
         seq_lengths=seq_lens, batch_sizes=[1, 4], repeats=repeats
     )
@@ -110,13 +110,13 @@ def run_suite(quick=True, save_plots=False):
 
     # ── 7. Memory analysis ───────────────────────────────────────────────────
     section("7. Activation Memory Analysis")
-    from memory_analysis import activation_memory_table
+    from flashdance.memory_analysis import activation_memory_table
     mem_results = activation_memory_table(seq_lengths=seq_lens)
     report["results"]["memory"] = mem_results
 
     # ── 8. Entropy ───────────────────────────────────────────────────────────
     section("8. Attention Entropy")
-    from entropy import analyze_attention_entropy
+    from flashdance.entropy import analyze_attention_entropy
     ent_results = analyze_attention_entropy(seq_len=seq_lens[0] if quick else 256)
     report["results"]["entropy"] = {k: v.tolist() for k, v in ent_results.items()}
 
@@ -124,14 +124,14 @@ def run_suite(quick=True, save_plots=False):
     if save_plots:
         section("Generating Plots")
         try:
-            from visualize import plot_causal_vs_bidirectional, demo_attention_patterns
+            from viz.visualize import plot_causal_vs_bidirectional, demo_attention_patterns
             plot_causal_vs_bidirectional()
             demo_attention_patterns()
         except Exception as e:
             print(f"  visualize.py: {e}")
 
         try:
-            from visualize_advanced import (
+            from viz.visualize_advanced import (
                 plot_gqa_pattern, plot_position_encoding_comparison,
                 plot_sliding_window_visual, plot_entropy_heatmap
             )
@@ -143,13 +143,13 @@ def run_suite(quick=True, save_plots=False):
             print(f"  visualize_advanced.py: {e}")
 
         try:
-            from entropy import plot_entropy_analysis
+            from flashdance.entropy import plot_entropy_analysis
             plot_entropy_analysis()
         except Exception as e:
             print(f"  entropy plots: {e}")
 
         try:
-            from attention_io import plot_io_analysis
+            from flashdance.attention_io import plot_io_analysis
             plot_io_analysis(io_results)
         except Exception as e:
             print(f"  io analysis plot: {e}")
