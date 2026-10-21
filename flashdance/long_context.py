@@ -20,9 +20,9 @@ import time
 import torch
 import torch.nn.functional as F
 
-from rope import precompute_freqs, apply_rope
-from sliding_window import sliding_window_attention
-from alibi import build_alibi_bias, alibi_attention
+from .rope import precompute_freqs, apply_rope
+from .sliding_window import sliding_window_attention
+from .alibi import build_alibi_bias, alibi_attention
 
 
 def ntk_scaled_rope(head_dim: int, seq_len: int, base: float = 10000.0, scale: float = 1.0, device=None):

@@ -16,7 +16,7 @@ import math
 import torch
 import torch.nn as nn
 
-from attention import vanilla_attention, sdpa_attention, MultiHeadAttention
+from .attention import vanilla_attention, sdpa_attention, MultiHeadAttention
 
 
 def estimate_parameter_memory(dim: int, n_heads: int, n_layers: int = 1, dtype=torch.float32) -> dict:

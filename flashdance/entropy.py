@@ -16,9 +16,9 @@ import torch
 import torch.nn.functional as F
 import numpy as np
 
-from attention import vanilla_attention_with_scores
-from alibi import build_alibi_bias, alibi_attention
-from rope import precompute_freqs, apply_rope
+from .attention import vanilla_attention_with_scores
+from .alibi import build_alibi_bias, alibi_attention
+from .rope import precompute_freqs, apply_rope
 
 
 def attention_entropy(weights: torch.Tensor, eps: float = 1e-9) -> torch.Tensor:

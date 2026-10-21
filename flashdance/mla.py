@@ -14,7 +14,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-from rope import precompute_freqs, apply_rope_single
+from .rope import precompute_freqs, apply_rope_single
 
 
 class MultiHeadLatentAttention(nn.Module):

@@ -14,8 +14,8 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-from rope import precompute_freqs, apply_rope
-from gqa import repeat_kv
+from .rope import precompute_freqs, apply_rope
+from .gqa import repeat_kv
 
 
 class KVCache:

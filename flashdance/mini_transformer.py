@@ -18,9 +18,9 @@ import torch.nn.functional as F
 from dataclasses import dataclass
 from typing import Optional
 
-from rope import precompute_freqs, apply_rope
-from gqa import GroupedQueryAttention, repeat_kv
-from kv_cache import KVCache
+from .rope import precompute_freqs, apply_rope
+from .gqa import GroupedQueryAttention, repeat_kv
+from .kv_cache import KVCache
 
 
 @dataclass

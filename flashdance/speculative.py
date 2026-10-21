@@ -18,9 +18,9 @@ import time
 import torch
 import torch.nn.functional as F
 
-from attention import sdpa_attention
-from kv_cache import KVCache, AttentionWithKVCache
-from rope import precompute_freqs
+from .attention import sdpa_attention
+from .kv_cache import KVCache, AttentionWithKVCache
+from .rope import precompute_freqs
 
 
 def simulate_draft_decode(
