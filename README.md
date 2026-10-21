@@ -48,6 +48,39 @@ python -m benchmarks.profile_attn --seq-len 1024
 python -m viz.visualize
 ```
 
+## How it fits together
+
+```mermaid
+flowchart LR
+    subgraph lib["flashdance/ (library)"]
+        attention["attention<br/>vanilla + SDPA"]
+        rope
+        alibi
+        sliding["sliding_window"]
+        gqa
+        mla
+        kv["kv_cache"]
+        mini["mini_transformer"]
+        spec["speculative"]
+        long["long_context"]
+        ent["entropy"]
+        mem["memory_analysis"]
+    end
+
+    rope --> gqa & mla & kv & long & ent & mini & spec
+    gqa --> kv & mini
+    kv --> mini & spec
+    attention --> ent & mem & spec
+    alibi --> ent & long
+    sliding --> long
+
+    bench["benchmarks/<br/>python -m benchmarks.name"] --> lib
+    viz["viz/<br/>python -m viz.name"] --> lib
+    tests["tests/<br/>pytest"] --> lib
+    bench -->|results/*.csv, *.json| out[("results/")]
+    viz -->|plots/*.png| plots[("plots/")]
+```
+
 ## Layout
 
 | Path | What it holds |
