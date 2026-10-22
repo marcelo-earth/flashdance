@@ -30,12 +30,16 @@ Flash Attention rewrites the attention computation to be IO-aware -- it avoids m
 
 ## Key findings
 
-- SDPA gets faster relative to vanilla as sequence length grows
-- At short sequences (<256), the difference is small
-- At 2K+ tokens, SDPA saves both time and memory significantly
-- The backward pass speedup is often bigger than the forward pass
-- On CUDA, Flash Attention kernel kicks in automatically through SDPA
-- float16 and bfloat16 give extra speedup with minimal precision loss
+Measured with `benchmarks.stats_bench`: causal forward pass, batch 4, 8 heads, head dim 64, each block a fresh process with shuffled order, speedup = vanilla time / SDPA time with a 95% paired CI over blocks. Below 1.00 means SDPA is slower.
+
+| Hardware | dtype | Blocks | 512 | 1024 | 2048 |
+|----------|-------|-------:|----:|-----:|-----:|
+| M3, MPS | float32 | 25 | 0.97x | 0.96x | 0.96x |
+| M3, MPS | float16 | 20 | 0.56x [0.55, 0.57] | 0.51x [0.50, 0.52] | 0.49x [0.48, 0.50] |
+
+- On Apple Silicon, SDPA does not help the forward pass. It is 3 to 4% slower in float32 and about 2x slower in float16, with every CI below 1.00. MPS has no Flash kernel, so SDPA runs a generic path.
+- On CUDA, SDPA with bf16 dispatches to the Flash kernel, and the theory says it should pull ahead as sequence length grows. That is not measured here yet: the A100 and H100 runs (`modal_bench.py`) are pending.
+- Memory, the backward pass, and the other benchmarks in `benchmarks/` have no blocked, CI-backed run yet, so no claims are made about them.
 
 ## Setup
 
@@ -46,6 +50,10 @@ python -m benchmarks.benchmark --backward
 python -m benchmarks.benchmark --save
 python -m benchmarks.profile_attn --seq-len 1024
 python -m viz.visualize
+
+# blocked runs with confidence intervals (the numbers in Key findings)
+python -m benchmarks.stats_bench --blocks 20 --dtype float16 --max-load 2
+FD_RUN=cuda-fwd-a100-pilot modal run modal_bench.py --gpu a100 --blocks 3   # needs Modal, costs money
 ```
 
 ## How it fits together
@@ -77,6 +85,7 @@ flowchart LR
     bench["benchmarks/<br/>python -m benchmarks.name"] --> lib
     viz["viz/<br/>python -m viz.name"] --> lib
     tests["tests/<br/>pytest"] --> lib
+    modal["modal_bench.py<br/>A100 / H100 on Modal"] -->|runs stats_bench| bench
     bench -->|results/*.csv, *.json| out[("results/")]
     viz -->|plots/*.png| plots[("plots/")]
 ```
@@ -87,6 +96,7 @@ flowchart LR
 |------|---------------|
 | `flashdance/` | Library: attention variants (`attention`, `gqa`, `mla`, `sliding_window`, `alibi`, `cross_attention`), `rope`, `kv_cache`, `mini_transformer`, `long_context`, `speculative`, and analysis helpers (`entropy`, `attention_io`, `attention_score_analysis`, `memory_analysis`) |
 | `benchmarks/` | Runnable benchmarks: `benchmark`, `stats_bench`, `throughput`, `compare`, `run_all`, `profile_attn`, and the rest. Run with `python -m benchmarks.<name>` from the repo root |
+| `modal_bench.py` | Runs `stats_bench` on an A100 or H100 on Modal, tagged for cost tracking |
 | `viz/` | Plotting: `visualize`, `visualize_advanced`. Run with `python -m viz.<name>` |
 | `tests/` | pytest suite |
 | `flashdance.ipynb` | Full analysis with plots |
